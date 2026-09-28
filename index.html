@@ -1,221 +1,539 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Factores Financieros</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Calfin - Calculadora Financiera</title>
     <style>
-        /* Estilos base adicionales para una tipografía más limpia */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* bg-gray-100 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #f0f2f5; --bg-card: #ffffff; --text-primary: #1a1a2e;
+            --text-secondary: #4a4a68; --accent: #4361ee; --accent-hover: #3651d4;
+            --border: #e0e0e8; --input-bg: #f8f9fc; --success: #10b981;
+            --error: #ef4444; --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
+        [data-theme="dark"] {
+            --bg-primary: #0f0f1a; --bg-card: #1a1a2e; --text-primary: #f0f0f8;
+            --text-secondary: #a0a0b8; --accent: #6366f1; --accent-hover: #818cf8;
+            --border: #2a2a3e; --input-bg: #252540; --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary); color: var(--text-primary);
+            min-height: 100vh; display: flex; justify-content: center;
+            align-items: flex-start; padding: 30px 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .container {
+            background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow);
+            padding: 40px; width: 100%; max-width: 720px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        h1 { font-size: 1.75rem; font-weight: 700; }
+        .subtitle { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px; }
+        .theme-toggle {
+            background: var(--input-bg); border: 2px solid var(--border);
+            border-radius: 50px; width: 60px; height: 30px; cursor: pointer;
+            position: relative; transition: all 0.3s ease; flex-shrink: 0;
+        }
+        .theme-toggle::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 22px; height: 22px; background: var(--accent);
+            border-radius: 50%; transition: transform 0.3s ease;
+        }
+        [data-theme="dark"] .theme-toggle::after { transform: translateX(30px); }
+        .form-group { margin-bottom: 24px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; }
+        input, textarea {
+            width: 100%; padding: 14px 18px; border: 2px solid var(--border);
+            border-radius: 12px; font-size: 1rem; background: var(--input-bg);
+            color: var(--text-primary); transition: all 0.3s ease;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1); }
+        #expression {
+            font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+            font-size: 1.1rem; line-height: 1.6; resize: none; overflow-y: hidden;
+            min-height: 88px; word-break: break-all;
+        }
+        .palette { display: flex; flex-wrap: wrap; gap: 8px; }
+        .palette button {
+            padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px;
+            font-size: 0.9rem; font-weight: 600; font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+            background: var(--input-bg); color: var(--text-primary); cursor: pointer; transition: all 0.2s ease;
+        }
+        .palette button:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+        .palette button.factor-btn { color: var(--accent); }
+        .palette button.factor-btn:hover { background: var(--accent); color: #ffffff; }
+        .palette button.op-btn { min-width: 44px; color: var(--success); }
+        .palette button.del-btn { color: var(--error); }
+        .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 6px; }
+        .buttons button { padding: 16px 24px; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .btn-calculate { background: var(--accent); color: white; }
+        .btn-calculate:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(67, 97, 238, 0.3); }
+        .btn-clear { background: var(--input-bg); color: var(--text-secondary); border: 2px solid var(--border); }
+        .btn-clear:hover { background: var(--border); transform: translateY(-2px); }
+        .results { margin-top: 30px; padding: 24px; background: var(--input-bg); border-radius: 12px; border: 2px solid var(--border); display: none; }
+        .results.show { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .result-item { margin-bottom: 16px; }
+        .result-item:last-child { margin-bottom: 0; }
+        .result-label { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
+        .result-label-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+        .result-label-row .result-label { margin-bottom: 0; }
+        .currency-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; user-select: none; margin-bottom: 0; }
+        .currency-toggle input { width: 16px; height: 16px; padding: 0; accent-color: var(--accent); cursor: pointer; }
+        .result-value { font-size: 1.05rem; font-weight: 700; font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace; word-break: break-all; line-height: 1.5; }
+        .result-value.highlight { color: var(--accent); font-size: 1.6rem; }
+        .breakdown-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .breakdown-table th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); padding: 8px 10px; border-bottom: 2px solid var(--border); }
+        .breakdown-table td { padding: 9px 10px; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
+        .breakdown-table tr:last-child td { border-bottom: none; }
+        .breakdown-table .mono { font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace; }
+        .breakdown-table .factor-name { color: var(--accent); font-weight: 600; }
+        .breakdown-table .factor-value { color: var(--success); font-weight: 600; }
+        .error-message { color: var(--error); font-size: 0.85rem; margin-top: 8px; display: none; }
+        .error-message.show { display: block; }
+        input.error, textarea.error { border-color: var(--error); }
+        dialog { background: var(--bg-card); color: var(--text-primary); border: 2px solid var(--border); border-radius: 16px; padding: 28px; width: min(92vw, 360px); box-shadow: var(--shadow); }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+        dialog h3 { font-size: 1.15rem; margin-bottom: 4px; }
+        dialog h3 span { font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace; color: var(--accent); }
+        dialog .desc { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; }
+        dialog label { margin-top: 14px; }
+        .dialog-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+        .dialog-btns button { padding: 13px; border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
     </style>
 </head>
-<body class="text-gray-800 antialiased min-h-screen flex flex-col">
-
-    <header class="bg-indigo-600 text-white shadow-md py-6">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 class="text-3xl font-bold tracking-tight text-center md:text-left">
-                Calculadora Financiera
-            </h1>
-            <p class="mt-2 text-indigo-200 text-sm md:text-base text-center md:text-left">
-                Factores de Ingeniería Económica y Equivalencia del Valor del Dinero en el Tiempo
-            </p>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CALFIN - MATFIN</h1>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"></button>
         </div>
-    </header>
+        <p class="subtitle">Escribir factores y magnitudes; magnitudes sin puntos ni comas (.) o (,)</p>
 
-    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        <form id="calculatorForm">
+            <div class="form-group">
+                <label for="expression">Ecuación de valor</label>
+                <textarea id="expression" rows="3" spellcheck="false" autocomplete="off"
+                       placeholder="e.g. 10000 * [(P/A,3%,10)+(P/F,1%,13)]"></textarea>
+                <div class="error-message" id="exprError"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Insertar factores estándar</label>
+                <div class="palette" id="factorPalette">
+                    <button type="button" class="factor-btn" data-factor="P/F" data-args="2">(P/F,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="F/P" data-args="2">(F/P,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="P/A" data-args="2">(P/A,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="F/A" data-args="2">(F/A,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="A/P" data-args="2">(A/P,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="A/F" data-args="2">(A/F,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="P/G" data-args="2">(P/G,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="A/G" data-args="2">(A/G,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="P/g" data-args="3">(P/g,i,g,n)</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Operadores aritméticos</label>
+                <div class="palette">
+                    <button type="button" class="op-btn" data-insert=" + ">+</button>
+                    <button type="button" class="op-btn" data-insert=" - ">&minus;</button>
+                    <button type="button" class="op-btn" data-insert=" * ">&times;</button>
+                    <button type="button" class="op-btn" data-insert=" / ">&divide;</button>
+                    <button type="button" class="op-btn" data-insert="[">[</button>
+                    <button type="button" class="op-btn" data-insert="]">]</button>
+                    <button type="button" class="op-btn" data-insert="(">(</button>
+                    <button type="button" class="op-btn" data-insert="\)">\)</button>
+                    <button type="button" id="backspaceBtn">&#9003; Borrar</button>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button type="button" class="btn-calculate" id="calculateBtn">Calcular</button>
+                <button type="button" class="btn-clear" id="clearBtn">Limpiar</button>
+            </div>
+        </form>
+
+        <div class="results" id="results">
+            <div class="result-item">
+                <div class="result-label-row">
+                    <div class="result-label">Resultado Final</div>
+                    <label class="currency-toggle">
+                        <input type="checkbox" id="currencyToggle">
+                        Formato $
+                    </label>
+                </div>
+                <div class="result-value highlight" id="resultCalculated">-</div>
+            </div>
+            <div class="result-item" id="substitutionItem">
+                <div class="result-label">Evaluación numérica</div>
+                <div class="result-value" id="resultSubstituted" style="font-size:0.9rem; font-weight:400;">-</div>
+            </div>
+
+            <div class="result-item" id="breakdownItem" style="display:none;">
+                <div class="result-label">Desglose de factores</div>
+                <table class="breakdown-table">
+                    <thead>
+                        <tr>
+                            <th>Factor Numérico</th>
+                            <th>Fórmula / Descripción</th>
+                            <th>Valor (12 Decimales)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="breakdownBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <dialog id="factorDialog">
+        <h3>Insertar <span id="dlgFactorName"></span></h3>
+        <p class="desc" id="dlgFactorDesc"></p>
         
-        <!-- Mensaje de error oculto por defecto -->
-        <div id="errorMessage" class="hidden mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm" role="alert">
-            <p class="font-bold">Error de validación</p>
-            <p id="errorText">Por favor, ingresa valores válidos en los campos numéricos.</p>
+        <label for="dlgRate">Tasa de interés (i) &mdash; e.g., 3 o 0.03</label>
+        <input type="number" id="dlgRate" step="any" min="0" placeholder="e.g., 3">
+        
+        <div id="dlgGRateContainer" style="display: none;">
+            <label for="dlgGRate">Tasa del gradiente (g) &mdash; e.g., 2 o 0.02</label>
+            <input type="number" id="dlgGRate" step="any" min="0" placeholder="e.g., 2">
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <div class="lg:col-span-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-max">
-                <h2 class="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">Variables de Entrada</h2>
-                
-                <form id="calcForm" class="space-y-5" onsubmit="event.preventDefault(); calcularFactores();">
-                    <div>
-                        <label for="interestRate" class="block text-sm font-medium text-gray-700 mb-1">
-                            Tasa de Interés (i) <span class="text-gray-500 font-normal">% por periodo</span>
-                        </label>
-                        <input type="number" id="interestRate" step="any" placeholder="Ej: 5" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <div>
-                        <label for="periods" class="block text-sm font-medium text-gray-700 mb-1">
-                            Número de Periodos (n)
-                        </label>
-                        <input type="number" id="periods" step="any" placeholder="Ej: 10" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <div>
-                        <label for="gradientRate" class="block text-sm font-medium text-gray-700 mb-1">
-                            Tasa de Gradiente (g) <span class="text-gray-500 font-normal">% por periodo</span>
-                        </label>
-                        <input type="number" id="gradientRate" step="any" placeholder="Ej: 3 (Solo para P/A1)"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-                        <p class="text-xs text-gray-500 mt-1">Obligatorio si se desea calcular el factor de Gradiente Geométrico.</p>
-                    </div>
-
-                    <button type="submit" 
-                        class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 ease-in-out transform hover:-translate-y-0.5">
-                        Calcular Factores
-                    </button>
-                </form>
-            </div>
-
-            <div class="lg:col-span-8 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                <h2 class="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">Resultados Obtenidos</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="resultsGrid">
-                    <!-- Tarjeta F/P -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="text-sm text-gray-500 font-medium mb-1">Cantidad Compuesta (Pago Único)</div>
-                        <div class="flex justify-between items-end">
-                            <div class="text-lg font-bold text-indigo-700">(F/P, i, n)</div>
-                            <div class="text-2xl font-bold text-gray-900" id="resFP">0.00000</div>
-                        </div>
-                    </div>
-
-                    <!-- Tarjeta P/F -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Pago Único)</div>
-                        <div class="flex justify-between items-end">
-                            <div class="text-lg font-bold text-indigo-700">(P/F, i, n)</div>
-                            <div class="text-2xl font-bold text-gray-900" id="resPF">0.00000</div>
-                        </div>
-                    </div>
-
-                    <!-- Tarjeta F/A -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="text-sm text-gray-500 font-medium mb-1">Cantidad Compuesta (Serie Uniforme)</div>
-                        <div class="flex justify-between items-end">
-                            <div class="text-lg font-bold text-indigo-700">(F/A, i, n)</div>
-                            <div class="text-2xl font-bold text-gray-900" id="resFA">0.00000</div>
-                        </div>
-                    </div>
-
-                    <!-- Tarjeta P/A -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Serie Uniforme)</div>
-                        <div class="flex justify-between items-end">
-                            <div class="text-lg font-bold text-indigo-700">(P/A, i, n)</div>
-                            <div class="text-2xl font-bold text-gray-900" id="resPA">0.00000</div>
-                        </div>
-                    </div>
-
-                    <!-- Tarjeta P/G -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Gradiente Aritmético)</div>
-                        <div class="flex justify-between items-end">
-                            <div class="text-lg font-bold text-indigo-700">(P/G, i, n)</div>
-                            <div class="text-2xl font-bold text-gray-900" id="resPG">0.00000</div>
-                        </div>
-                    </div>
-
-                    <!-- Tarjeta P/A1 (Geo) -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Gradiente Geométrico)</div>
-                        <div class="flex justify-between items-end">
-                            <div class="text-lg font-bold text-indigo-700">(P/A1, g, i, n)</div>
-                            <div class="text-2xl font-bold text-gray-900" id="resPGeo">---</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-100 text-sm text-indigo-800">
-                    <strong>Nota:</strong> Los resultados se muestran redondeados a 5 decimales. Asegúrate de ingresar las tasas en formato porcentual (ej. 5 para un 5%).
-                </div>
-            </div>
+        <label for="dlgPeriods">Periodos (n)</label>
+        <input type="number" id="dlgPeriods" step="any" min="0" placeholder="e.g., 10">
+        
+        <div class="dialog-btns">
+            <button type="button" class="btn-clear" id="dlgCancel">Cancelar</button>
+            <button type="button" class="btn-calculate" id="dlgInsert">Insertar</button>
         </div>
-    </main>
+    </dialog>
 
     <script>
-        // Funciones matemáticas financieras
-        function factorFP(i, n) {
-            return Math.pow(1 + i, n);
+    document.addEventListener('DOMContentLoaded', () => {
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            html.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            html.setAttribute('data-theme', 'dark');
         }
 
-        function factorPF(i, n) {
-            return 1 / Math.pow(1 + i, n);
+        const FACTORS = {
+            'P/F': { desc: 'Presente dado Futuro', args: 2, fn: (i, n) => i === 0 ? 1 : Math.pow(1 + i, -n) },
+            'F/P': { desc: 'Futuro dado Presente', args: 2, fn: (i, n) => i === 0 ? 1 : Math.pow(1 + i, n) },
+            'P/A': { desc: 'Presente dado Anualidad', args: 2, fn: (i, n) => i === 0 ? n : (Math.pow(1 + i, n) - 1) / (i * Math.pow(1 + i, n)) },
+            'F/A': { desc: 'Futuro dado Anualidad', args: 2, fn: (i, n) => i === 0 ? n : (Math.pow(1 + i, n) - 1) / i },
+            'A/P': { desc: 'Recuperación de Capital (A/P)', args: 2, fn: (i, n) => i === 0 ? 1/n : (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1) },
+            'A/F': { desc: 'Fondo de Amortización (A/F)', args: 2, fn: (i, n) => i === 0 ? 1/n : i / (Math.pow(1 + i, n) - 1) },
+            'P/G': { desc: 'Presente dado Gradiente Aritmético', args: 2, fn: (i, n) => i === 0 ? n * (n - 1) / 2 : (Math.pow(1 + i, n) - i * n - 1) / (i * i * Math.pow(1 + i, n)) },
+            'A/G': { desc: 'Anualidad dado Gradiente Aritmético', args: 2, fn: (i, n) => i === 0 ? (n - 1) / 2 : (1 / i) - (n / (Math.pow(1 + i, n) - 1)) },
+            'P/g': { desc: 'Presente dado Gradiente Geométrico', args: 3, fn: (i, g, n) => i === g ? n / (1 + i) : (1 - Math.pow(1 + g, n) * Math.pow(1 + i, -n)) / (i - g) }
+        };
+
+        const FACTOR_RE = /\(\s*([A-Za-z]\/[A-Za-z])\s*,([^)]+)\)/g;
+
+        function substituteFactors(expr, breakdown) {
+            return expr.replace(FACTOR_RE, (match, factorName, argsStr) => {
+                const nameStr = factorName;
+                const factor = FACTORS[nameStr] || FACTORS[nameStr.toUpperCase()];
+                if (!factor) throw new Error(`Factor desconocido: (${factorName}, ...)`);
+
+                const argsRaw = argsStr.split(/[,;]/).map(s => s.trim());
+                if (argsRaw.length !== factor.args) throw new Error(`El factor (${factorName}) requiere ${factor.args} parámetros.`);
+
+                const parseRate = (str) => {
+                    let val = parseFloat(str);
+                    if (str.includes('%') || val >= 1) val = val / 100;
+                    return { value: val, shown: str };
+                };
+
+                let valResult, argsDisplay;
+                if (factor.args === 2) {
+                    const i = parseRate(argsRaw[0]);
+                    const n = parseFloat(argsRaw[1]);
+                    valResult = factor.fn(i.value, n);
+                    argsDisplay = `${i.shown}, ${n}`;
+                } else if (factor.args === 3) {
+                    const i = parseRate(argsRaw[0]);
+                    const g = parseRate(argsRaw[1]);
+                    const n = parseFloat(argsRaw[2]);
+                    valResult = factor.fn(i.value, g.value, n);
+                    argsDisplay = `${i.shown}, ${g.shown}, ${n}`;
+                }
+
+                if (!isFinite(valResult)) throw new Error(`El factor ${match} es indefinido.`);
+
+                breakdown.push({ name: factorName, argsShown: argsDisplay, desc: factor.desc, value: valResult });
+                return '(' + valResult + ')';
+            });
         }
 
-        function factorFA(i, n) {
-            if (i === 0) return n; // Límite cuando i tiende a 0
-            return (Math.pow(1 + i, n) - 1) / i;
-        }
+        function evaluate(src) {
+            let pos = 0;
+            const peek = () => src[pos];
+            const skipWs = () => { while (pos < src.length && /\s/.test(src[pos])) pos++; };
 
-        function factorPA(i, n) {
-            if (i === 0) return n; // Límite cuando i tiende a 0
-            return (Math.pow(1 + i, n) - 1) / (i * Math.pow(1 + i, n));
-        }
-
-        function factorPG(i, n) {
-            if (i === 0) return (n * (n - 1)) / 2; // Caso de tasa 0 (suma de gradientes puros)
-            return (Math.pow(1 + i, n) - 1 - (i * n)) / (Math.pow(i, 2) * Math.pow(1 + i, n));
-        }
-
-        function factorPGeo(i, g, n) {
-            if (i === g) {
-                return n / (1 + i);
-            } else {
-                return (1 - Math.pow(1 + g, n) * Math.pow(1 + i, -n)) / (i - g);
+            function parseExpression() {
+                let left = parseTerm();
+                skipWs();
+                while (peek() === '+' || peek() === '-') {
+                    const op = src[pos++];
+                    const right = parseTerm();
+                    left = op === '+' ? left + right : left - right;
+                    skipWs();
+                }
+                return left;
             }
+            function parseTerm() {
+                let left = parsePower();
+                skipWs();
+                while (peek() === '*' || peek() === '/') {
+                    const op = src[pos++];
+                    const right = parsePower();
+                    if (op === '/' && right === 0) throw new Error('División por cero');
+                    left = op === '*' ? left * right : left / right;
+                    skipWs();
+                }
+                return left;
+            }
+            function parsePower() {
+                const base = parseUnary();
+                skipWs();
+                if (peek() === '^') { pos++; return Math.pow(base, parsePower()); }
+                return base;
+            }
+            function parseUnary() {
+                skipWs();
+                if (peek() === '-') { pos++; return -parseUnary(); }
+                if (peek() === '+') { pos++; return parseUnary(); }
+                return parsePrimary();
+            }
+            function parsePrimary() {
+                skipWs();
+                if (peek() === '(') {
+                    pos++;
+                    const v = parseExpression();
+                    skipWs();
+                    if (peek() !== ')') throw new Error('Falta un paréntesis de cierre');
+                    pos++;
+                    return v;
+                }
+                const m = /^[0-9]*\.?[0-9]+(?:e[+-]?[0-9]+)?/i.exec(src.slice(pos));
+                if (!m) throw new Error(`Carácter inesperado: '${src[pos] || 'fin de entrada'}'`);
+                pos += m[0].length;
+                return parseFloat(m[0]);
+            }
+
+            const result = parseExpression();
+            skipWs();
+            if (pos < src.length) throw new Error(`Carácter inesperado: '${src[pos]}'`);
+            return result;
         }
 
-        function calcularFactores() {
-            // Esconder mensaje de error previo
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.classList.add('hidden');
+        const exprInput = document.getElementById('expression');
+        const exprError = document.getElementById('exprError');
+        const results = document.getElementById('results');
+        const resultCalculated = document.getElementById('resultCalculated');
+        const resultSubstituted = document.getElementById('resultSubstituted');
+        const breakdownItem = document.getElementById('breakdownItem');
+        const breakdownBody = document.getElementById('breakdownBody');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const currencyToggle = document.getElementById('currencyToggle');
 
-            // Capturar y convertir valores de entrada
-            // Dividimos por 100 porque el usuario ingresa porcentajes (ej: 5 -> 0.05)
-            const inputI = parseFloat(document.getElementById('interestRate').value);
-            const inputN = parseFloat(document.getElementById('periods').value);
-            const inputG_raw = document.getElementById('gradientRate').value;
-            
-            // Validaciones básicas
-            if (isNaN(inputI) || isNaN(inputN) || inputN <= 0) {
-                mostrarError("La tasa de interés y el número de periodos (n > 0) son obligatorios y deben ser numéricos.");
+        if (!exprInput) return;
+
+        function fmt(x, precision) {
+            if (Number.isInteger(x) && Math.abs(x) < 1e15) return x.toString();
+            return x.toFixed(precision);
+        }
+
+        let lastValue = null;
+
+        function renderResult() {
+            if (lastValue === null) return;
+            resultCalculated.textContent = currencyToggle.checked
+                ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(lastValue)
+                : fmt(lastValue, 12); // Incrementada la precisión
+        }
+
+        currencyToggle.addEventListener('change', renderResult);
+
+        function autoGrow() {
+            exprInput.style.height = 'auto';
+            exprInput.style.height = Math.max(exprInput.scrollHeight, 88) + 'px';
+        }
+        autoGrow();
+
+        function clearErrors() {
+            exprError.classList.remove('show');
+            exprInput.classList.remove('error');
+        }
+
+        function calculate() {
+            clearErrors();
+            const raw = exprInput.value.trim();
+            if (!raw) {
+                exprInput.classList.add('error');
+                exprError.textContent = 'Ingrese una ecuación';
+                exprError.classList.add('show');
+                results.classList.remove('show');
                 return;
             }
 
-            const i = inputI / 100.0;
-            const n = inputN;
-            
-            // Renderizar resultados con 5 decimales
-            const decimales = 5;
+            try {
+                const normalized = raw
+                    .replace(/[\[{]/g, '(').replace(/[\]}]/g, ')')
+                    .replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
 
-            document.getElementById('resFP').innerText = factorFP(i, n).toFixed(decimales);
-            document.getElementById('resPF').innerText = factorPF(i, n).toFixed(decimales);
-            document.getElementById('resFA').innerText = factorFA(i, n).toFixed(decimales);
-            document.getElementById('resPA').innerText = factorPA(i, n).toFixed(decimales);
-            document.getElementById('resPG').innerText = factorPG(i, n).toFixed(decimales);
+                const breakdown = [];
+                const substituted = substituteFactors(normalized, breakdown);
+                const value = evaluate(substituted);
 
-            // Calcular gradiente geométrico si existe el valor de 'g'
-            if (inputG_raw !== "") {
-                const g = parseFloat(inputG_raw) / 100.0;
-                document.getElementById('resPGeo').innerText = factorPGeo(i, g, n).toFixed(decimales);
-            } else {
-                document.getElementById('resPGeo').innerText = "---";
+                lastValue = value;
+                renderResult();
+
+                if (breakdown.length > 0) {
+                    let idx = 0;
+                    const shown = normalized.replace(FACTOR_RE, () => '(' + fmt(breakdown[idx++].value, 8) + ')');
+                    resultSubstituted.textContent = '= ' + shown;
+                    resultSubstituted.parentElement.style.display = '';
+                    
+                    breakdownItem.style.display = 'block';
+                    breakdownBody.innerHTML = '';
+                    for (const f of breakdown) {
+                        const tr = document.createElement('tr');
+                        const cells = [
+                            ['mono factor-name', `(${f.name}, ${f.argsShown})`],
+                            ['formula', f.desc],
+                            ['mono factor-value', fmt(f.value, 12)]
+                        ];
+                        for (const [cls, text] of cells) {
+                            const td = document.createElement('td');
+                            td.className = cls;
+                            td.textContent = text;
+                            tr.appendChild(td);
+                        }
+                        breakdownBody.appendChild(tr);
+                    }
+                } else {
+                    resultSubstituted.parentElement.style.display = 'none';
+                    breakdownItem.style.display = 'none';
+                }
+                results.classList.add('show');
+            } catch (e) {
+                exprInput.classList.add('error');
+                exprError.textContent = e.message;
+                exprError.classList.add('show');
+                results.classList.remove('show');
             }
         }
 
-        function mostrarError(mensaje) {
-            const errorDiv = document.getElementById('errorMessage');
-            const errorText = document.getElementById('errorText');
-            errorText.innerText = mensaje;
-            errorDiv.classList.remove('hidden');
+        function insertAtCursor(text) {
+            const start = exprInput.selectionStart ?? exprInput.value.length;
+            const end = exprInput.selectionEnd ?? exprInput.value.length;
+            exprInput.value = exprInput.value.slice(0, start) + text + exprInput.value.slice(end);
+            const cursor = start + text.length;
+            exprInput.focus();
+            exprInput.setSelectionRange(cursor, cursor);
+            autoGrow();
+            clearErrors();
         }
+
+        document.querySelectorAll('[data-insert]').forEach(btn =>
+            btn.addEventListener('click', () => insertAtCursor(btn.dataset.insert)));
+
+        document.getElementById('backspaceBtn').addEventListener('click', () => {
+            const start = exprInput.selectionStart ?? exprInput.value.length;
+            const end = exprInput.selectionEnd ?? exprInput.value.length;
+            if (start !== end) {
+                exprInput.value = exprInput.value.slice(0, start) + exprInput.value.slice(end);
+                exprInput.setSelectionRange(start, start);
+            } else if (start > 0) {
+                exprInput.value = exprInput.value.slice(0, start - 1) + exprInput.value.slice(start);
+                exprInput.setSelectionRange(start - 1, start - 1);
+            }
+            exprInput.focus();
+            autoGrow();
+            clearErrors();
+        });
+
+        const dialog = document.getElementById('factorDialog');
+        const dlgRate = document.getElementById('dlgRate');
+        const dlgGRate = document.getElementById('dlgGRate');
+        const dlgPeriods = document.getElementById('dlgPeriods');
+        const dlgGRateContainer = document.getElementById('dlgGRateContainer');
+        let pendingFactor = null;
+        let pendingFactorArgs = 2;
+
+        document.querySelectorAll('.factor-btn').forEach(btn =>
+            btn.addEventListener('click', () => {
+                pendingFactor = btn.dataset.factor;
+                pendingFactorArgs = parseInt(btn.dataset.args);
+                
+                document.getElementById('dlgFactorName').textContent = `(${pendingFactor}, ${pendingFactorArgs === 3 ? 'i, g, n' : 'i, n'})`;
+                document.getElementById('dlgFactorDesc').textContent = FACTORS[pendingFactor].desc;
+                
+                dlgRate.value = '';
+                dlgGRate.value = '';
+                dlgPeriods.value = '';
+                dlgGRateContainer.style.display = pendingFactorArgs === 3 ? 'block' : 'none';
+                
+                dialog.showModal();
+                dlgRate.focus();
+            }));
+
+        document.getElementById('dlgCancel').addEventListener('click', () => dialog.close());
+
+        function commitFactor() {
+            const rate = dlgRate.value.trim();
+            const gRate = dlgGRate.value.trim();
+            const n = dlgPeriods.value.trim();
+            
+            if (!rate || !n || (pendingFactorArgs === 3 && !gRate)) {
+                dlgRate.focus();
+                return;
+            }
+            
+            const formatRate = (r) => parseFloat(r) < 1 ? r : r + '%';
+            
+            let insertedText = '';
+            if (pendingFactorArgs === 2) {
+                insertedText = `(${pendingFactor},${formatRate(rate)},${n})`;
+            } else {
+                insertedText = `(${pendingFactor},${formatRate(rate)},${formatRate(gRate)},${n})`;
+            }
+            
+            dialog.close();
+            insertAtCursor(insertedText);
+        }
+
+        document.getElementById('dlgInsert').addEventListener('click', commitFactor);
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitFactor(); }
+        });
+
+        calculateBtn.addEventListener('click', calculate);
+        clearBtn.addEventListener('click', () => {
+            exprInput.value = ''; results.classList.remove('show');
+            lastValue = null; clearErrors(); autoGrow(); exprInput.focus();
+        });
+
+        exprInput.addEventListener('input', () => {
+            autoGrow(); clearErrors();
+            if (results.classList.contains('show')) calculate();
+        });
+
+        document.getElementById('calculatorForm').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); calculate(); }
+        });
+    });
     </script>
 </body>
 </html>
