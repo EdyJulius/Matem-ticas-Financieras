@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Factores Financieros</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos base adicionales para una tipografía más limpia */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-indigo-600 text-white shadow-md py-6">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-bold tracking-tight text-center md:text-left">
+                Calculadora Financiera
+            </h1>
+            <p class="mt-2 text-indigo-200 text-sm md:text-base text-center md:text-left">
+                Factores de Ingeniería Económica y Equivalencia del Valor del Dinero en el Tiempo
+            </p>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        
+        <!-- Mensaje de error oculto por defecto -->
+        <div id="errorMessage" class="hidden mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm" role="alert">
+            <p class="font-bold">Error de validación</p>
+            <p id="errorText">Por favor, ingresa valores válidos en los campos numéricos.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-4 bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-max">
+                <h2 class="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">Variables de Entrada</h2>
+                
+                <form id="calcForm" class="space-y-5" onsubmit="event.preventDefault(); calcularFactores();">
+                    <div>
+                        <label for="interestRate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Tasa de Interés (i) <span class="text-gray-500 font-normal">% por periodo</span>
+                        </label>
+                        <input type="number" id="interestRate" step="any" placeholder="Ej: 5" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div>
+                        <label for="periods" class="block text-sm font-medium text-gray-700 mb-1">
+                            Número de Periodos (n)
+                        </label>
+                        <input type="number" id="periods" step="any" placeholder="Ej: 10" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div>
+                        <label for="gradientRate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Tasa de Gradiente (g) <span class="text-gray-500 font-normal">% por periodo</span>
+                        </label>
+                        <input type="number" id="gradientRate" step="any" placeholder="Ej: 3 (Solo para P/A1)"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                        <p class="text-xs text-gray-500 mt-1">Obligatorio si se desea calcular el factor de Gradiente Geométrico.</p>
+                    </div>
+
+                    <button type="submit" 
+                        class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 ease-in-out transform hover:-translate-y-0.5">
+                        Calcular Factores
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-8 bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <h2 class="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">Resultados Obtenidos</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="resultsGrid">
+                    <!-- Tarjeta F/P -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-sm text-gray-500 font-medium mb-1">Cantidad Compuesta (Pago Único)</div>
+                        <div class="flex justify-between items-end">
+                            <div class="text-lg font-bold text-indigo-700">(F/P, i, n)</div>
+                            <div class="text-2xl font-bold text-gray-900" id="resFP">0.00000</div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta P/F -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Pago Único)</div>
+                        <div class="flex justify-between items-end">
+                            <div class="text-lg font-bold text-indigo-700">(P/F, i, n)</div>
+                            <div class="text-2xl font-bold text-gray-900" id="resPF">0.00000</div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta F/A -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-sm text-gray-500 font-medium mb-1">Cantidad Compuesta (Serie Uniforme)</div>
+                        <div class="flex justify-between items-end">
+                            <div class="text-lg font-bold text-indigo-700">(F/A, i, n)</div>
+                            <div class="text-2xl font-bold text-gray-900" id="resFA">0.00000</div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta P/A -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Serie Uniforme)</div>
+                        <div class="flex justify-between items-end">
+                            <div class="text-lg font-bold text-indigo-700">(P/A, i, n)</div>
+                            <div class="text-2xl font-bold text-gray-900" id="resPA">0.00000</div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta P/G -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Gradiente Aritmético)</div>
+                        <div class="flex justify-between items-end">
+                            <div class="text-lg font-bold text-indigo-700">(P/G, i, n)</div>
+                            <div class="text-2xl font-bold text-gray-900" id="resPG">0.00000</div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta P/A1 (Geo) -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-sm text-gray-500 font-medium mb-1">Valor Presente (Gradiente Geométrico)</div>
+                        <div class="flex justify-between items-end">
+                            <div class="text-lg font-bold text-indigo-700">(P/A1, g, i, n)</div>
+                            <div class="text-2xl font-bold text-gray-900" id="resPGeo">---</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-100 text-sm text-indigo-800">
+                    <strong>Nota:</strong> Los resultados se muestran redondeados a 5 decimales. Asegúrate de ingresar las tasas en formato porcentual (ej. 5 para un 5%).
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Funciones matemáticas financieras
+        function factorFP(i, n) {
+            return Math.pow(1 + i, n);
+        }
+
+        function factorPF(i, n) {
+            return 1 / Math.pow(1 + i, n);
+        }
+
+        function factorFA(i, n) {
+            if (i === 0) return n; // Límite cuando i tiende a 0
+            return (Math.pow(1 + i, n) - 1) / i;
+        }
+
+        function factorPA(i, n) {
+            if (i === 0) return n; // Límite cuando i tiende a 0
+            return (Math.pow(1 + i, n) - 1) / (i * Math.pow(1 + i, n));
+        }
+
+        function factorPG(i, n) {
+            if (i === 0) return (n * (n - 1)) / 2; // Caso de tasa 0 (suma de gradientes puros)
+            return (Math.pow(1 + i, n) - 1 - (i * n)) / (Math.pow(i, 2) * Math.pow(1 + i, n));
+        }
+
+        function factorPGeo(i, g, n) {
+            if (i === g) {
+                return n / (1 + i);
+            } else {
+                return (1 - Math.pow(1 + g, n) * Math.pow(1 + i, -n)) / (i - g);
+            }
+        }
+
+        function calcularFactores() {
+            // Esconder mensaje de error previo
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.add('hidden');
+
+            // Capturar y convertir valores de entrada
+            // Dividimos por 100 porque el usuario ingresa porcentajes (ej: 5 -> 0.05)
+            const inputI = parseFloat(document.getElementById('interestRate').value);
+            const inputN = parseFloat(document.getElementById('periods').value);
+            const inputG_raw = document.getElementById('gradientRate').value;
+            
+            // Validaciones básicas
+            if (isNaN(inputI) || isNaN(inputN) || inputN <= 0) {
+                mostrarError("La tasa de interés y el número de periodos (n > 0) son obligatorios y deben ser numéricos.");
+                return;
+            }
+
+            const i = inputI / 100.0;
+            const n = inputN;
+            
+            // Renderizar resultados con 5 decimales
+            const decimales = 5;
+
+            document.getElementById('resFP').innerText = factorFP(i, n).toFixed(decimales);
+            document.getElementById('resPF').innerText = factorPF(i, n).toFixed(decimales);
+            document.getElementById('resFA').innerText = factorFA(i, n).toFixed(decimales);
+            document.getElementById('resPA').innerText = factorPA(i, n).toFixed(decimales);
+            document.getElementById('resPG').innerText = factorPG(i, n).toFixed(decimales);
+
+            // Calcular gradiente geométrico si existe el valor de 'g'
+            if (inputG_raw !== "") {
+                const g = parseFloat(inputG_raw) / 100.0;
+                document.getElementById('resPGeo').innerText = factorPGeo(i, g, n).toFixed(decimales);
+            } else {
+                document.getElementById('resPGeo').innerText = "---";
+            }
+        }
+
+        function mostrarError(mensaje) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.innerText = mensaje;
+            errorDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
