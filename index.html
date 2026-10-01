@@ -130,9 +130,14 @@
                     <button type="button" class="factor-btn" data-factor="F/A" data-args="2">(F/A,i,n)</button>
                     <button type="button" class="factor-btn" data-factor="A/P" data-args="2">(A/P,i,n)</button>
                     <button type="button" class="factor-btn" data-factor="A/F" data-args="2">(A/F,i,n)</button>
+                    
+                    <!-- Botones de gradiente completos integrados -->
                     <button type="button" class="factor-btn" data-factor="P/G" data-args="2">(P/G,i,n)</button>
                     <button type="button" class="factor-btn" data-factor="A/G" data-args="2">(A/G,i,n)</button>
+                    <button type="button" class="factor-btn" data-factor="F/G" data-args="2">(F/G,i,n)</button>
                     <button type="button" class="factor-btn" data-factor="P/g" data-args="3">(P/g,i,g,n)</button>
+                    <button type="button" class="factor-btn" data-factor="F/g" data-args="3">(F/g,i,g,n)</button>
+                    <button type="button" class="factor-btn" data-factor="A/g" data-args="3">(A/g,i,g,n)</button>
                 </div>
             </div>
 
@@ -233,7 +238,16 @@
             'A/F': { desc: 'Fondo de Amortización (A/F)', args: 2, fn: (i, n) => i === 0 ? 1/n : i / (Math.pow(1 + i, n) - 1) },
             'P/G': { desc: 'Presente dado Gradiente Aritmético', args: 2, fn: (i, n) => i === 0 ? n * (n - 1) / 2 : (Math.pow(1 + i, n) - i * n - 1) / (i * i * Math.pow(1 + i, n)) },
             'A/G': { desc: 'Anualidad dado Gradiente Aritmético', args: 2, fn: (i, n) => i === 0 ? (n - 1) / 2 : (1 / i) - (n / (Math.pow(1 + i, n) - 1)) },
-            'P/g': { desc: 'Presente dado Gradiente Geométrico', args: 3, fn: (i, g, n) => i === g ? n / (1 + i) : (1 - Math.pow(1 + g, n) * Math.pow(1 + i, -n)) / (i - g) }
+            
+            /* Nuevos factores agregados para completar las familias de gradientes */
+            'F/G': { desc: 'Futuro dado Gradiente Aritmético', args: 2, fn: (i, n) => i === 0 ? n * (n - 1) / 2 : (1 / i) * (((Math.pow(1 + i, n) - 1) / i) - n) },
+            'P/g': { desc: 'Presente dado Gradiente Geométrico', args: 3, fn: (i, g, n) => i === g ? n / (1 + i) : (1 - Math.pow(1 + g, n) * Math.pow(1 + i, -n)) / (i - g) },
+            'F/g': { desc: 'Futuro dado Gradiente Geométrico', args: 3, fn: (i, g, n) => i === g ? n * Math.pow(1 + i, n - 1) : (Math.pow(1 + i, n) - Math.pow(1 + g, n)) / (i - g) },
+            'A/g': { desc: 'Anualidad dado Gradiente Geométrico', args: 3, fn: (i, g, n) => {
+                const p_g = i === g ? n / (1 + i) : (1 - Math.pow(1 + g, n) * Math.pow(1 + i, -n)) / (i - g);
+                const a_p = i === 0 ? 1 / n : (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1);
+                return p_g * a_p;
+            }}
         };
 
         const FACTOR_RE = /\(\s*([A-Za-z]\/[A-Za-z])\s*,([^)]+)\)/g;
@@ -360,7 +374,7 @@
             if (lastValue === null) return;
             resultCalculated.textContent = currencyToggle.checked
                 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(lastValue)
-                : fmt(lastValue, 12); // Incrementada la precisión
+                : fmt(lastValue, 12); 
         }
 
         currencyToggle.addEventListener('change', renderResult);
